@@ -1,0 +1,322 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FestPass - QR Ticket</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 25px 15px;
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
+            color: #252044;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            display: inline-block;
+            background: #6d5ce7;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .header p {
+            color: #716b8e;
+            margin-top: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e0ff;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(65, 45, 130, 0.06);
+        }
+
+        h2 {
+            color: #4b3da8;
+            margin-top: 0;
+            font-size: 21px;
+        }
+
+        .description {
+            color: #77718f;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            margin: 12px 0;
+            border: 1px solid #d8d1f5;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #6d5ce7;
+        }
+
+        button {
+            background: #6d5ce7;
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+        }
+
+        button:hover {
+            background: #5545c5;
+        }
+
+        button:disabled {
+            background: #aaa3d5;
+            cursor: not-allowed;
+        }
+
+        .secondary-button {
+            background: #e9e5ff;
+            color: #5142b4;
+        }
+
+        .secondary-button:hover {
+            background: #dcd5ff;
+        }
+
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            margin: 22px 0;
+        }
+
+        #qrLink {
+            text-align: center;
+            overflow-wrap: anywhere;
+            font-size: 13px;
+            color: #716b8e;
+        }
+
+        #reader {
+            max-width: 400px;
+            margin: 15px auto;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+            white-space: pre-wrap;
+        }
+
+        .footer {
+            text-align: center;
+            color: #8b85a5;
+            font-size: 13px;
+            margin-top: 25px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 18px 12px;
+            }
+
+            .card {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <div class="logo">FestPass</div>
+        <p>Your college fest, one digital ticket.</p>
+    </div>
+
+    <div class="card">
+        <h2>🎟 Generate Your Ticket</h2>
+        <p class="description">
+            Enter your ticket code below to create your QR ticket.
+        </p>
+
+        <input
+            type="text"
+            id="ticketCode"
+            placeholder="Enter ticket code"
+        >
+
+        <button onclick="generateQR()">Generate QR</button>
+
+        <div id="qrcode"></div>
+
+        <p id="qrLink"></p>
+    </div>
+
+    <div class="card">
+        <h2>📷 Ticket Check-in</h2>
+        <p class="description">
+            Scan a ticket QR code using your device camera.
+        </p>
+
+        <div id="reader"></div>
+
+        <button onclick="startScanner()">Start Scanner</button>
+        <button class="secondary-button" onclick="stopScanner()">
+            Stop Camera
+        </button>
+
+        <div id="message"></div>
+    </div>
+
+    <div class="footer">
+        FestPass · College Fest Ticketing System
+    </div>
+
+</div>
+
+<script>
+    let scanner = null;
+
+    function generateQR() {
+        const code = document.getElementById("ticketCode").value.trim();
+
+        if (!code) {
+            alert("Please enter ticket code");
+            return;
+        }
+
+        document.getElementById("qrcode").innerHTML = "";
+        document.getElementById("message").innerText = "";
+
+        // Change this IP if your laptop Wi-Fi IP changes.
+        const laptopIP = "10.178.107.52";
+
+        const checkInUrl =
+            "http://" + laptopIP +
+            ":8080/ticket-checkin.html?ticketCode=" +
+            encodeURIComponent(code);
+
+        new QRCode(document.getElementById("qrcode"), {
+            text: checkInUrl,
+            width: 220,
+            height: 220
+        });
+
+        document.getElementById("qrLink").innerText =
+            "Scan this QR code using your phone camera.";
+    }
+
+    async function startScanner() {
+        const message = document.getElementById("message");
+        message.innerText = "";
+
+        try {
+            scanner = new Html5Qrcode("reader");
+
+            await scanner.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: 250
+                },
+                async function(decodedText) {
+                    await stopScanner();
+
+                    if (decodedText.startsWith("http://") ||
+                        decodedText.startsWith("https://")) {
+                        window.location.href = decodedText;
+                    } else {
+                        await checkInTicket(decodedText);
+                    }
+                },
+                function(errorMessage) {
+                    // Ignore normal scanning attempts.
+                }
+            );
+        } catch (error) {
+            message.style.color = "red";
+            message.innerText =
+                "Camera could not start. Please allow camera permission.";
+        }
+    }
+
+    async function stopScanner() {
+        if (scanner) {
+            try {
+                if (scanner.isScanning) {
+                    await scanner.stop();
+                }
+                scanner.clear();
+            } catch (error) {
+                console.log(error);
+            }
+
+            scanner = null;
+        }
+    }
+
+    async function checkInTicket(ticketCode) {
+        const message = document.getElementById("message");
+
+        try {
+            const response = await fetch("/tickets/checkin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    ticketCode: ticketCode
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                message.style.color = "green";
+                message.innerText =
+                    "CHECK-IN SUCCESSFUL!\nTicket Status: " + result.status;
+            } else {
+                message.style.color = "red";
+                message.innerText =
+                    "CHECK-IN FAILED!\n" +
+                    (result.message || "Ticket could not be checked in.");
+            }
+        } catch (error) {
+            message.style.color = "red";
+            message.innerText =
+                "Could not connect to FestPass server.";
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FestPass - Ticket Check-in</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 25px 15px;
+            font-family: Arial, sans-serif;
+            background: #f5f3ff;
+            color: #252044;
+        }
+
+        .container {
+            max-width: 450px;
+            margin: 45px auto;
+            background: white;
+            padding: 28px;
+            border: 1px solid #e5e0ff;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(65, 45, 130, 0.06);
+            text-align: center;
+        }
+
+        .logo {
+            display: inline-block;
+            background: #6d5ce7;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        h2 {
+            color: #4b3da8;
+            margin-top: 25px;
+        }
+
+        .description {
+            color: #77718f;
+            font-size: 14px;
+        }
+
+        #ticketInfo {
+            background: #f5f3ff;
+            color: #5142b4;
+            padding: 14px;
+            border-radius: 8px;
+            overflow-wrap: anywhere;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background: #6d5ce7;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #5545c5;
+        }
+
+        button:disabled {
+            background: #aaa3d5;
+            cursor: not-allowed;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 13px;
+            border-radius: 8px;
+            font-weight: bold;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .footer {
+            margin-top: 25px;
+            color: #8b85a5;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="logo">FestPass</div>
+
+    <h2>Ticket Check-in</h2>
+
+    <p class="description">
+        Confirm your ticket at the event entrance.
+    </p>
+
+    <p id="ticketInfo">Reading ticket...</p>
+
+    <button id="checkInButton" onclick="checkIn()">
+        Confirm Check-in
+    </button>
+
+    <div id="result"></div>
+
+    <div class="footer">
+        FestPass · College Fest Ticketing System
+    </div>
+
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const ticketCode = params.get("ticketCode");
+
+    const ticketInfo = document.getElementById("ticketInfo");
+    const result = document.getElementById("result");
+    const checkInButton = document.getElementById("checkInButton");
+
+    if (!ticketCode) {
+        ticketInfo.innerText = "Ticket code is missing.";
+        checkInButton.disabled = true;
+    } else {
+        ticketInfo.innerText = "Ticket Code: " + ticketCode;
+    }
+
+    async function checkIn() {
+        if (!ticketCode) {
+            result.style.color = "red";
+            result.innerText = "Invalid ticket link.";
+            return;
+        }
+
+        checkInButton.disabled = true;
+        result.style.color = "#333";
+        result.innerText = "Checking ticket...";
+
+        try {
+            const response = await fetch("/tickets/checkin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    ticketCode: ticketCode
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                result.style.color = "green";
+                result.innerText =
+                    "CHECK-IN SUCCESSFUL!\nTicket Status: " + data.status;
+            } else {
+                result.style.color = "red";
+                result.innerText =
+                    "CHECK-IN FAILED!\n" +
+                    (data.message || "Ticket could not be checked in.");
+
+                checkInButton.disabled = false;
+            }
+        } catch (error) {
+            result.style.color = "red";
+            result.innerText =
+                "Could not connect to FestPass server. Check Wi-Fi and server.";
+
+            checkInButton.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>
